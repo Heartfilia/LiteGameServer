@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ ${EUID} -ne 0 ]]; then
+    echo "请使用 sudo litegame-server <命令>" >&2
+    exit 1
+fi
+umask 077
+cd /opt/litegame-server
+exec runuser -u litegame -- env \
+    LITEGAME_ENV_FILE=/etc/litegame-server.env \
+    PYTHONDONTWRITEBYTECODE=1 \
+    /opt/litegame-server/.venv/bin/python /opt/litegame-server/manage.py "$@"

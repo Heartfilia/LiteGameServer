@@ -1,0 +1,31 @@
+[Unit]
+Description=LiteGame private save synchronization API
+After=network.target
+
+[Service]
+Type=simple
+User=litegame
+Group=litegame
+WorkingDirectory=/opt/litegame-server
+Environment=LITEGAME_ENV_FILE=/etc/litegame-server.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/litegame-server/.venv/bin/python /opt/litegame-server/server.py
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=30
+UMask=0077
+StateDirectory=litegame-server
+StateDirectoryMode=0700
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/litegame-server
+
+[Install]
+WantedBy=multi-user.target
