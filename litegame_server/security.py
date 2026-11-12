@@ -17,8 +17,8 @@ def normalize_username(username: str) -> tuple[str, str]:
 
 
 def hash_password(password: str) -> str:
-    if not 12 <= len(password) <= 1024:
-        raise ValueError("密码长度必须为 12–1024 个字符")
+    if not 4 <= len(password) <= 1024:
+        raise ValueError("密码长度必须为 4–1024 个字符")
     salt = secrets.token_bytes(16)
     digest = hashlib.scrypt(password.encode(), salt=salt, n=16384, r=8, p=1, dklen=32)
     return f"scrypt$16384$8$1${salt.hex()}${digest.hex()}"

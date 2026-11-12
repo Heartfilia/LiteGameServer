@@ -64,7 +64,7 @@ GET /api/v1/info
 POST /api/v1/auth/login
 Content-Type: application/json
 
-{"username":"我的用户名","password":"至少十二个字符的密码"}
+{"username":"我的用户名","password":"服务器上设置的密码"}
 ```
 
 ```json
@@ -75,6 +75,8 @@ Content-Type: application/json
   "user": {"id": 1, "username": "我的用户名"}
 }
 ```
+
+账户密码由服务器 CLI 创建或重置，长度为 4–1024 个字符。登录页面不要再设置 12 字符的最低限制；公网仍建议使用长随机密码。
 
 `expires_at` 是 Unix **秒**，不是毫秒。默认 30 天，固定有效期；没有 refresh token。后续请求携带：
 

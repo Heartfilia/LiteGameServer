@@ -22,7 +22,7 @@ sudo bash deploy/deploy.sh --uv "$(command -v uv)" --origin https://game.litetoo
 
 `--uv` 让 sudo 能找到当前用户已安装的 uv。脚本由 uv 下载 `.python-version` 指定的 Python（当前 3.13），使用 `uv.lock` 同步生产依赖，配置 systemd、管理命令并检查健康状态。仅在缺少 curl/rsync/CA 时安装对应系统包，不安装 pip 或系统 Python，不添加 PPA。默认 API 只监听 `127.0.0.1:9494`，**不会擅自修改现有 Nginx、证书或防火墙**。
 
-随后创建账户（交互输入至少 12 个字符的密码）：
+随后创建账户（交互输入至少 4 个字符的密码，公网建议使用更长的随机密码）：
 
 ```bash
 sudo litegame-server user add "你的用户名"

@@ -97,7 +97,7 @@ sudo litegame-server user revoke-sessions "我的用户名"
 sudo litegame-server login-limit-clear
 ```
 
-用户名：1–64 个字符，支持中文，首尾空白会被去掉，内部不能含空白或控制字符；按 Unicode NFC 规范化、casefold 去重。因此 `Alice` 和 `alice` 是同一个账户。密码：12–1024 个字符，建议使用密码管理器生成的随机密码。
+用户名：1–64 个字符，支持中文，首尾空白会被去掉，内部不能含空白或控制字符；按 Unicode NFC 规范化、casefold 去重。因此 `Alice` 和 `alice` 是同一个账户。创建用户与重置密码均要求 4–1024 个字符；4 字符仅是最低限制，公网建议使用密码管理器生成的长随机密码。
 
 不支持 `--password 明文` 或通过管道创建密码，避免暴露在进程列表和 shell 历史中。需要在交互终端执行；SSH 远程执行时使用交互登录或 `ssh -t`。没有默认用户，没有用户删除命令。用户创建后无需重启服务。
 

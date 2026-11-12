@@ -15,7 +15,7 @@ from litegame_server.security import hash_password, normalize_username, utcnow
 def read_password():
     if not sys.stdin.isatty():
         raise ValueError("请在交互终端输入密码；不接受命令参数或管道中的明文密码")
-    password = getpass.getpass("密码（至少 12 个字符）: ")
+    password = getpass.getpass("密码（至少 4 个字符）: ")
     if password != getpass.getpass("再次输入密码: "):
         raise ValueError("两次密码不一致")
     return hash_password(password)
