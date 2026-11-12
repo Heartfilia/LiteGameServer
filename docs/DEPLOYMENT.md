@@ -2,9 +2,9 @@
 
 ## 1. 部署前准备
 
-- Linux + systemd，推荐 Debian 12+ / Ubuntu 24.04+。
-- Python >= 3.11。Ubuntu 22.04 默认的 Python 3.10 不满足要求；不要为了本服务覆盖操作系统 Python，升级系统或自行准备合适的运行环境。
-- 源码仓库可正常拉取，服务器能访问系统包仓库与 PyPI。
+- Linux + systemd，面向 Debian / Ubuntu（包括 Ubuntu 22.04）。
+- 已安装 uv（建议 0.10.9+）；部署不依赖系统 `python3` 的版本，也不需要 pip 或 python3-venv。
+- 源码仓库可正常拉取，服务器能访问 Python 托管发行版下载地址、PyPI；缺系统工具时还需访问系统包仓库。
 - 知道游戏站点的真实来源，例如 `https://game.litetools.top`。
 - 公网使用准备好一个 API 子域名及 HTTPS 证书，例如 `https://save.example.com`。不必与游戏网页部署在同一台机器。
 
@@ -13,15 +13,18 @@
 ```bash
 git clone https://github.com/Heartfilia/LiteGameServer.git
 cd LiteGameServer
-sudo bash deploy/deploy.sh --origin https://game.litetools.top
+sudo bash deploy/deploy.sh --uv "$(command -v uv)" --origin https://game.litetools.top
 ```
 
-**这就是一键安装命令。** 不使用未经检查的 `curl | bash`。脚本需要 root 权限，会执行 apt 安装依赖、创建专用服务账户并启动服务；不会自动配置域名、安装证书、开放防火墙或改动现有 Nginx。
+**这就是一键安装命令。** `--uv` 后的路径由调用者的 shell 在 sudo 前展开，避免 sudo 的 PATH 找不到 `~/.local/bin/uv`。脚本也会尝试查找当前 PATH 和 root 的 `~/.local/bin/uv`，但显式传递最可靠。可先运行 `uv --version` 确认。
+
+脚本创建专用服务账户，用 uv 安装独立 Python 和锁定依赖并启动服务；只在缺少 curl、rsync 或 CA 证书时使用 apt 安装对应包，避免每次部署升级系统组件或触发无关服务重启。不自动配置域名、安装证书、开放防火墙或改动现有 Nginx。
 
 多个游戏站点：
 
 ```bash
 sudo bash deploy/deploy.sh \
+  --uv "$(command -v uv)" \
   --origin https://game.litetools.top \
   --origin http://127.0.0.1:8766
 ```
@@ -31,16 +34,31 @@ sudo bash deploy/deploy.sh \
 已有依赖或非 apt 系统可执行：
 
 ```bash
-sudo bash deploy/deploy.sh --skip-packages --origin https://game.example.com
+sudo bash deploy/deploy.sh --uv "$(command -v uv)" --skip-packages --origin https://game.example.com
 ```
 
-仍要求 systemd、Python >=3.11（含 venv 和 pip）、curl、rsync、runuser、useradd。非 Debian/Ubuntu 发行版需要自行验证系统账户工具和路径；自动部署主要以 Debian/Ubuntu 为目标。
+仍要求 systemd、uv、curl、rsync、runuser、useradd 和可信 CA。非 Debian/Ubuntu 发行版需自行验证系统账户工具和路径；自动部署主要以 Debian/Ubuntu 为目标。
+
+### Python 与 uv 的管理边界
+
+系统 `python3 -V` 仍显示 3.10 是正常的。项目通过 `.python-version` 选择 Python 3.13，部署脚本执行 `uv python install` 和 `uv sync --locked --no-dev`，不修改系统 Python，不需要添加 PPA 或升级操作系统。
+
+uv 托管的解释器安装在 `/opt/litegame-server/python`，虚拟环境位于 `/opt/litegame-server/.venv`。避免使用 `/root/.local/share/uv/python` 作为运行依赖：服务使用无登录权限的 `litegame` 账户，并启用了 `ProtectHome=true`，不能依赖 root 的家目录。uv 本身可以在 root 家目录，因为它仅在管理员部署时使用。
+
+systemd 和 `litegame-server` 管理命令直接使用 uv 已同步的 `.venv/bin/python`。这是有意设计：运行/创建用户时不需要 uv 缓存权限、网络或 root 目录访问，也不会临时更新依赖。依赖与 Python 的管理入口统一是 uv，不再维护 requirements/pip 两套安装流程。
+
+首次下载 Python 需要网络；若下载失败，检查 uv 输出、服务器代理和证书设置，不能关闭 TLS 校验来绕过。更换 Python 版本通过修改 `.python-version` 后重新部署，uv 负责重建匹配的虚拟环境；数据库、配置不会因此删除。源码的最低兼容版本仍是 Python 3.11，部署默认使用 3.13。
+
+依赖统一锁定到官方 PyPI，部署显式使用 `https://pypi.org/simple`，避免机器上不同的 uv 全局镜像配置导致 `--locked` 认为锁文件需要改动。不要在生产机器上为消除报错直接重写 `uv.lock`。如需公司内部镜像，应在开发环境统一修改项目索引配置、重新生成并审查锁文件，再调整部署脚本与测试后发布。
+
+此前因 Python 3.10 检查失败的安装，可直接拉取新版后重新执行部署命令，无需卸载系统 Python。如果已经成功使用旧版部署，也可直接更新：脚本先备份数据库，再用 uv 同步运行环境，不要求手动删除任何数据。旧发布目录里遗留的 requirements 文件不会再读取，无需冒险清空整个目录。
 
 ### 安装位置
 
 | 路径 | 用途 |
 | --- | --- |
 | `/opt/litegame-server` | 程序、虚拟环境和文档，不对普通服务账户开放写入 |
+| `/opt/litegame-server/python` | uv 托管的独立 Python，不依赖系统 Python 或 root 家目录 |
 | `/etc/litegame-server.env` | 配置，root 所有、litegame 组可读 |
 | `/var/lib/litegame-server/litegame.sqlite3` | 数据库 |
 | `/var/lib/litegame-server/backups` | 备份，服务账户可写 |
@@ -85,13 +103,13 @@ sudo litegame-server login-limit-clear
 
 ### 本地开发时等价操作
 
-在源码目录激活 `.venv` 后，用 `python3 manage.py` 替换 `sudo litegame-server`：
+在源码目录用 `uv run manage.py` 替换 `sudo litegame-server`，无需激活虚拟环境：
 
 ```bash
-python3 manage.py --help
-python3 manage.py user --help
-python3 manage.py user add "我的用户名"
-python3 manage.py backup backups/local.sqlite3
+uv run manage.py --help
+uv run manage.py user --help
+uv run manage.py user add "我的用户名"
+uv run manage.py backup backups/local.sqlite3
 ```
 
 ## 3. Nginx 与 HTTPS
@@ -166,10 +184,10 @@ sudo journalctl -u litegame-server -f
 
 ```bash
 git pull --ff-only
-sudo bash deploy/deploy.sh
+sudo bash deploy/deploy.sh --uv "$(command -v uv)"
 ```
 
-更新会短暂停服，先备份再同步程序、安装锁定依赖、初始化／迁移数据库并启动。保留配置与数据；再次传 `--origin` 不会覆盖已有配置，修改来源请编辑配置文件。备份位于 `backups/pre-update-*.sqlite3`，不自动清理。
+更新在停服前先确保 uv 托管的 Python 已下载，随后短暂停服、备份、同步代码与锁定依赖、初始化／迁移数据库并启动。保留配置与数据；再次传 `--origin` 不会覆盖已有配置，修改来源请编辑配置文件。备份位于 `backups/pre-update-*.sqlite3`，不自动清理。`uv.lock` 与项目不一致时拒绝部署，而不是在生产上悄悄解析新版本。
 
 脚本不执行自动代码回滚。如果更新中网络或安装失败导致服务停止，查看输出、修复依赖问题后重新执行；不要用旧程序强行打开新版本数据库。建议发布前保留源码版本号，并先在测试环境检查。
 
@@ -211,7 +229,9 @@ curl --fail http://127.0.0.1:9494/healthz
 
 | 现象 | 检查与处理 |
 | --- | --- |
-| Python 版本过低 | `python3 --version`；要求 >=3.11，推荐 Debian 12 / Ubuntu 24.04 |
+| 系统 Python 只有 3.10 | 无需修改，使用新版 uv 部署脚本，Python 会独立下载 |
+| sudo 找不到 uv | 使用 `--uv "$(command -v uv)"`；先在当前 shell 确认 `uv --version` |
+| Python/依赖下载失败 | 检查 uv 日志、服务器网络、代理、CA；不要关闭 TLS 校验 |
 | 外网连不上 9494 | 默认设计如此，通过 HTTPS Nginx 访问，而不是开放 API 端口 |
 | Nginx 502 | 检查 `systemctl status`、journal、端口、proxy_pass |
 | 浏览器 CORS 报错 | 确认白名单是游戏网页来源，不是 API 来源；匹配协议、域名和端口；重启服务 |

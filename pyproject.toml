@@ -1,0 +1,25 @@
+[project]
+name = "litegame-server"
+version = "1.0.0"
+description = "Private game save synchronization API for LiteGame"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "uvicorn>=0.30,<1.0",
+    "python-dotenv>=1.0.1,<2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8,<10",
+    "httpx>=0.27,<1.0",
+]
+
+[tool.uv]
+package = false
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true

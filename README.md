@@ -1,6 +1,6 @@
 # LiteGameServer
 
-为 [LiteGame](https://github.com/Heartfilia/LiteGame) 提供私有游戏记录、收藏与 FC / NES 存档同步的 API。采用 **Python 3.11+ / FastAPI / SQLite**，无需 MySQL、Redis 或 Node.js。
+为 [LiteGame](https://github.com/Heartfilia/LiteGame) 提供私有游戏记录、收藏与 FC / NES 存档同步的 API。采用 **uv / Python / FastAPI / SQLite**，无需 MySQL、Redis 或 Node.js。
 
 - **只有服务器命令行可以创建用户**，没有公开注册接口。
 - 用户名自定义，密码使用 scrypt 哈希；用户之间的数据隔离。
@@ -12,15 +12,15 @@
 
 ## 一键部署（Debian / Ubuntu + systemd）
 
-推荐 Debian 12+、Ubuntu 24.04+，需要 Python 3.11+。在服务器上克隆本仓库、进入目录后：
+支持 Debian / Ubuntu + systemd（包括系统 Python 为 3.10 的 Ubuntu 22.04）。服务器已安装 `uv` 即可，**不需要升级系统 Python**。在源码目录执行：
 
 ```bash
-sudo bash deploy/deploy.sh --origin https://game.litetools.top
+sudo bash deploy/deploy.sh --uv "$(command -v uv)" --origin https://game.litetools.top
 ```
 
 `--origin` 是**游戏网页的来源**（协议 + 域名 + 可选端口），不是 API 地址；替换为自己的实际站点。需要多个来源可重复指定。首次安装必须指定，更新时保留已有配置。
 
-脚本安装系统依赖、独立虚拟环境、锁定版本的 Python 依赖、systemd 服务及管理命令，并进行健康检查。默认 API 只监听 `127.0.0.1:9494`，**不会擅自修改现有 Nginx、证书或防火墙**。
+`--uv` 让 sudo 能找到当前用户已安装的 uv。脚本由 uv 下载 `.python-version` 指定的 Python（当前 3.13），使用 `uv.lock` 同步生产依赖，配置 systemd、管理命令并检查健康状态。仅在缺少 curl/rsync/CA 时安装对应系统包，不安装 pip 或系统 Python，不添加 PPA。默认 API 只监听 `127.0.0.1:9494`，**不会擅自修改现有 Nginx、证书或防火墙**。
 
 随后创建账户（交互输入至少 12 个字符的密码）：
 
@@ -40,14 +40,11 @@ sudo systemctl status litegame-server --no-pager
 ## 本地运行（macOS / Linux）
 
 ```bash
-python3 --version                 # 必须 >= 3.11
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install -r requirements.lock
+uv sync --locked
 cp .env.example .env
-python3 manage.py init-db
-python3 manage.py user add "你的用户名"
-python3 server.py
+uv run manage.py init-db
+uv run manage.py user add "你的用户名"
+uv run server.py
 ```
 
 - 服务信息：`http://127.0.0.1:9494/api/v1/info`
@@ -55,7 +52,7 @@ python3 server.py
 - 交互式接口文档：`http://127.0.0.1:9494/docs`
 - OpenAPI：`http://127.0.0.1:9494/openapi.json`
 
-本地管理命令需在项目目录运行，先激活虚拟环境；也可把 `python3` 替换为 `.venv/bin/python`。`.env` 相对项目目录加载，实际环境变量优先。
+本地管理命令在项目目录使用 `uv run`，无需手动激活虚拟环境。首次运行会自动准备 Python 和依赖。`.env` 相对项目目录加载，实际环境变量优先；已有 `.env` 不要重复用 `cp` 覆盖。
 
 ## 用户管理速查
 
@@ -71,14 +68,14 @@ sudo litegame-server user revoke-sessions "用户名"
 sudo litegame-server login-limit-clear
 ```
 
-本地运行时，等价命令为 `python3 manage.py user ...`。用户名支持中文、不区分大小写（保留显示写法），不能包含空白或控制字符；没有默认用户或默认密码。禁用、重置密码、撤销会话均即时阻止旧凭据访问；重新启用不会恢复旧会话。没有删除用户命令，防止误删存档。
+本地运行时，等价命令为 `uv run manage.py user ...`。用户名支持中文、不区分大小写（保留显示写法），不能包含空白或控制字符；没有默认用户或默认密码。禁用、重置密码、撤销会话均即时阻止旧凭据访问；重新启用不会恢复旧会话。没有删除用户命令，防止误删存档。
 
 ## 更新与备份
 
 ```bash
 # 在服务器上的源码 checkout 中拉取后重新部署（不是 /opt 发布目录）
 git pull --ff-only
-sudo bash deploy/deploy.sh
+sudo bash deploy/deploy.sh --uv "$(command -v uv)"
 
 # 在线备份，文件名必须尚不存在
 sudo litegame-server backup /var/lib/litegame-server/backups/manual-20261112.sqlite3
@@ -96,13 +93,12 @@ sudo litegame-server backup /var/lib/litegame-server/backups/manual-20261112.sql
 ## 开发与测试
 
 ```bash
-source .venv/bin/activate
-python3 -m pip install -r requirements.lock -r requirements-dev.txt
-python3 -m pytest -q
+uv sync --locked
+uv run --no-sync python -m pytest -q
 bash -n deploy/deploy.sh deploy/litegame-server
 ```
 
-生产依赖固定在 `requirements.lock`；`requirements.txt` 定义允许的版本范围。更新依赖时使用 `uv pip compile --python-version 3.11 requirements.txt -o requirements.lock`，并重新运行测试。仓库 CI 覆盖 Python 3.11 / 3.13。
+`pyproject.toml` 定义项目及开发依赖，`uv.lock` 锁定完整依赖与校验哈希，`.python-version` 指定默认 Python。更新依赖用 `uv lock --upgrade`，随后 `uv sync --locked` 并重新测试。部署使用 `uv sync --locked --no-dev`；运行中的服务直接使用 uv 准备好的解释器，不会联网解析依赖。仓库 CI 覆盖 Python 3.11 / 3.13。
 
 ## 安全边界
 
