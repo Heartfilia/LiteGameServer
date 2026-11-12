@@ -19,7 +19,7 @@ def positive_int(name: str, default: int) -> int:
 class Settings:
     db_path: Path
     host: str = "127.0.0.1"
-    port: int = 8787
+    port: int = 9494
     cors_origins: tuple[str, ...] = ()
     session_days: int = 30
     max_body_bytes: int = 16 * 1024 * 1024
@@ -48,7 +48,7 @@ class Settings:
         return cls(
             db_path=db_path,
             host=os.getenv("LITEGAME_HOST", "127.0.0.1"),
-            port=positive_int("LITEGAME_PORT", 8787),
+            port=positive_int("LITEGAME_PORT", 9494),
             cors_origins=origins,
             session_days=positive_int("LITEGAME_SESSION_DAYS", 30),
             max_body_bytes=positive_int("LITEGAME_MAX_BODY_BYTES", 16 * 1024 * 1024),

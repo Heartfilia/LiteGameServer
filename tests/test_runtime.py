@@ -18,6 +18,15 @@ from manage import create_user
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def test_default_port_and_environment_override(monkeypatch, tmp_path):
+    monkeypatch.setenv("LITEGAME_ENV_FILE", str(tmp_path / "absent.env"))
+    monkeypatch.delenv("LITEGAME_PORT", raising=False)
+    assert Settings(db_path=tmp_path / "test.sqlite3").port == 9494
+    assert Settings.load().port == 9494
+    monkeypatch.setenv("LITEGAME_PORT", "12345")
+    assert Settings.load().port == 12345
+
+
 def test_real_server_start_and_login(tmp_path):
     """Exercise server.py, environment loading, Uvicorn and HTTP outside TestClient."""
     db = tmp_path / "runtime.sqlite3"

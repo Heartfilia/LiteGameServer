@@ -20,7 +20,7 @@ sudo bash deploy/deploy.sh --origin https://game.litetools.top
 
 `--origin` 是**游戏网页的来源**（协议 + 域名 + 可选端口），不是 API 地址；替换为自己的实际站点。需要多个来源可重复指定。首次安装必须指定，更新时保留已有配置。
 
-脚本安装系统依赖、独立虚拟环境、锁定版本的 Python 依赖、systemd 服务及管理命令，并进行健康检查。默认 API 只监听 `127.0.0.1:8787`，**不会擅自修改现有 Nginx、证书或防火墙**。
+脚本安装系统依赖、独立虚拟环境、锁定版本的 Python 依赖、systemd 服务及管理命令，并进行健康检查。默认 API 只监听 `127.0.0.1:9494`，**不会擅自修改现有 Nginx、证书或防火墙**。
 
 随后创建账户（交互输入至少 12 个字符的密码）：
 
@@ -31,7 +31,7 @@ sudo litegame-server user add "你的用户名"
 检查服务：
 
 ```bash
-curl http://127.0.0.1:8787/healthz
+curl http://127.0.0.1:9494/healthz
 sudo systemctl status litegame-server --no-pager
 ```
 
@@ -50,10 +50,10 @@ python3 manage.py user add "你的用户名"
 python3 server.py
 ```
 
-- 服务信息：`http://127.0.0.1:8787/api/v1/info`
-- 健康检查：`http://127.0.0.1:8787/healthz`
-- 交互式接口文档：`http://127.0.0.1:8787/docs`
-- OpenAPI：`http://127.0.0.1:8787/openapi.json`
+- 服务信息：`http://127.0.0.1:9494/api/v1/info`
+- 健康检查：`http://127.0.0.1:9494/healthz`
+- 交互式接口文档：`http://127.0.0.1:9494/docs`
+- OpenAPI：`http://127.0.0.1:9494/openapi.json`
 
 本地管理命令需在项目目录运行，先激活虚拟环境；也可把 `python3` 替换为 `.venv/bin/python`。`.env` 相对项目目录加载，实际环境变量优先。
 

@@ -96,7 +96,7 @@ python3 manage.py backup backups/local.sqlite3
 
 ## 3. Nginx 与 HTTPS
 
-默认只监听 `127.0.0.1:8787`，不要直接将此端口暴露公网。使用独立 API 子域名最简单。
+默认只监听 `127.0.0.1:9494`，不要直接将此端口暴露公网。使用独立 API 子域名最简单。
 
 1. 将 `save.example.com` 的 DNS 指向服务器。
 2. 使用自己的证书管理方式（例如 Certbot）签发并配置 HTTPS；证书续期验证按现有环境设置。
@@ -133,7 +133,7 @@ sudo systemctl restart litegame-server
 | --- | --- | --- |
 | `LITEGAME_DB` | `data/litegame.sqlite3` | 本地默认数据库；部署脚本设为 `/var/lib/litegame-server/litegame.sqlite3` |
 | `LITEGAME_HOST` | `127.0.0.1` | 监听地址 |
-| `LITEGAME_PORT` | `8787` | 监听端口；更改后同时修改 Nginx proxy_pass |
+| `LITEGAME_PORT` | `9494` | 监听端口；更改后同时修改 Nginx proxy_pass |
 | `LITEGAME_CORS_ORIGINS` | 空（示例中有开发来源） | 逗号分隔的确切游戏来源，不能使用 `*` |
 | `LITEGAME_SESSION_DAYS` | `30` | 登录有效天数，固定期限、不自动续期 |
 | `LITEGAME_MAX_BODY_BYTES` | `16777216` | 整个请求体上限 16 MiB，含 JSON 转义开销 |
@@ -200,7 +200,7 @@ sudo systemctl stop litegame-server
 sudo litegame-server backup "/var/lib/litegame-server/backups/before-restore-$(date -u +%Y%m%dT%H%M%SZ).sqlite3"
 sudo litegame-server restore /var/lib/litegame-server/backups/需要恢复的备份.sqlite3 --confirm-restore
 sudo systemctl start litegame-server
-curl --fail http://127.0.0.1:8787/healthz
+curl --fail http://127.0.0.1:9494/healthz
 ```
 
 恢复来源必须由 `litegame` 系统账户读取。工具检查完整性与数据库版本，使用 SQLite backup API 恢复，不手工删除 WAL 文件。工具无法证明所有外部进程均已停止，`--confirm-restore` 是管理员对停服和覆盖的确认，不能在运行中使用。
@@ -212,7 +212,7 @@ curl --fail http://127.0.0.1:8787/healthz
 | 现象 | 检查与处理 |
 | --- | --- |
 | Python 版本过低 | `python3 --version`；要求 >=3.11，推荐 Debian 12 / Ubuntu 24.04 |
-| 外网连不上 8787 | 默认设计如此，通过 HTTPS Nginx 访问，而不是开放 API 端口 |
+| 外网连不上 9494 | 默认设计如此，通过 HTTPS Nginx 访问，而不是开放 API 端口 |
 | Nginx 502 | 检查 `systemctl status`、journal、端口、proxy_pass |
 | 浏览器 CORS 报错 | 确认白名单是游戏网页来源，不是 API 来源；匹配协议、域名和端口；重启服务 |
 | HTTPS 页面无法连接 HTTP API | 浏览器混合内容限制，给 API 配 HTTPS；不要尝试前端绕过 |
